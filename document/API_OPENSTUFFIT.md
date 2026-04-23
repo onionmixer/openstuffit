@@ -119,6 +119,7 @@ The low-level API remains available for callers that need direct access to `ost_
 
 `ost_archive_extract(archive, options)` and `ost_archive_handle_extract(handle, options)`
 : Extract using `ost_extract_options`. `output_dir` must be set by the caller.
+  When `include_paths`/`include_path_count` are set, only matching entry paths are extracted.
 
 `ost_binhex_decode(data, size, out)`
 : Decodes a BinHex payload. Release `out` with `ost_binhex_free`.
@@ -184,7 +185,7 @@ uses the public library API for external backend integration:
 ```text
 openstuffit-fr-bridge identify --json <archive>
 openstuffit-fr-bridge list --json <archive> [--password <text>] [--unicode-normalization none|nfc|nfd]
-openstuffit-fr-bridge extract --output-dir <dir> <archive> [--password <text>] [--overwrite|--skip-existing|--rename-existing] [--forks skip|rsrc|appledouble|both|native] [--finder skip|sidecar] [--unicode-normalization none|nfc|nfd]
+openstuffit-fr-bridge extract --output-dir <dir> <archive> [--password <text>] [--overwrite|--skip-existing|--rename-existing] [--forks skip|rsrc|appledouble|both|native] [--finder skip|sidecar] [--unicode-normalization none|nfc|nfd] [--entry <path>]...
 ```
 
 Bridge exit code mapping:

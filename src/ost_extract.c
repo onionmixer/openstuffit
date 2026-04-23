@@ -42,6 +42,40 @@ static bool path_is_safe(const char *path) {
     return true;
 }
 
+static const char *trim_leading_slash(const char *path) {
+    if (!path) return "";
+    while (*path == '/') path++;
+    return path;
+}
+
+static size_t trim_trailing_slash_len(const char *path) {
+    size_t len = strlen(path);
+    while (len > 0 && path[len - 1] == '/') len--;
+    return len;
+}
+
+static bool entry_selected(const ost_extract_options *options, const char *entry_path) {
+    if (!options || !entry_path) return false;
+    if (!options->include_paths || options->include_path_count == 0) return true;
+    size_t entry_len = strlen(entry_path);
+
+    for (size_t i = 0; i < options->include_path_count; i++) {
+        const char *selector = options->include_paths[i];
+        const char *norm = trim_leading_slash(selector);
+        size_t sel_len;
+        if (!norm || !*norm) continue;
+
+        sel_len = trim_trailing_slash_len(norm);
+        if (sel_len == 0) continue;
+        if (entry_len < sel_len) continue;
+
+        if (strncmp(entry_path, norm, sel_len) != 0) continue;
+        if (entry_len == sel_len || entry_path[sel_len] == '/') return true;
+    }
+
+    return false;
+}
+
 static ost_status mkdir_p(const char *path) {
     if (!path || !*path) return OST_OK;
     char *tmp = dup_cstr(path);
@@ -396,6 +430,7 @@ ost_status ost_archive_extract(const ost_archive *archive, ost_extract_options *
     bool had_unsupported = false;
     for (size_t i = 0; i < archive->entry_count; i++) {
         const ost_entry *entry = &archive->entries[i];
+        if (!entry_selected(options, entry->path)) continue;
         if (!path_is_safe(entry->path)) {
             options->skipped_files++;
             return OST_ERR_BAD_FORMAT;

@@ -190,6 +190,10 @@ test-cli: $(BUILD_DIR)/openstuffit
 	$(BUILD_DIR)/openstuffit extract --overwrite -o /tmp/openstuffit_extract_smoke reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sit
 	test -f "/tmp/openstuffit_extract_smoke/Test Text"
 	test -f /tmp/openstuffit_extract_smoke/testfile.txt
+	rm -rf /tmp/openstuffit_extract_selected
+	$(BUILD_DIR)/openstuffit extract --overwrite -o /tmp/openstuffit_extract_selected --entry testfile.txt reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sit
+	test -f /tmp/openstuffit_extract_selected/testfile.txt
+	test ! -f /tmp/openstuffit_extract_selected/testfile.jpg
 	cmp -s /tmp/openstuffit_extract_smoke/testfile.jpg reference_repos/stuffit-test-files/sources/testfile.jpg
 	cmp -s /tmp/openstuffit_extract_smoke/testfile.png reference_repos/stuffit-test-files/sources/testfile.png
 	cmp -s /tmp/openstuffit_extract_smoke/testfile.PICT reference_repos/stuffit-test-files/sources/testfile.PICT

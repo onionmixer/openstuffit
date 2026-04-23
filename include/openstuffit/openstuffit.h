@@ -170,6 +170,8 @@ typedef struct {
     ost_collision_mode collision;
     bool preserve_time;
     bool verify_crc;
+    const char *const *include_paths;
+    size_t include_path_count;
     size_t extracted_files;
     size_t skipped_files;
     size_t unsupported_files;

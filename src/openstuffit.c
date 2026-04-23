@@ -27,7 +27,7 @@ static void usage(FILE *fp) {
             "  openstuffit [--version] [--help]\n"
             "  openstuffit identify [--json] [--show-forks] <input>...\n"
             "  openstuffit list [-l|-L] [--json] [--unicode-normalization none|nfc|nfd] <input>\n"
-            "  openstuffit extract [-o dir] [--password text] [--overwrite|--skip-existing|--rename-existing] [--preserve-time|--no-preserve-time] [--no-verify-crc] [--forks skip|rsrc|appledouble|both|native] [--finder skip|sidecar] [--unicode-normalization none|nfc|nfd] <input>\n"
+            "  openstuffit extract [-o dir] [--password text] [--overwrite|--skip-existing|--rename-existing] [--preserve-time|--no-preserve-time] [--no-verify-crc] [--forks skip|rsrc|appledouble|both|native] [--finder skip|sidecar] [--unicode-normalization none|nfc|nfd] [--entry path]... <input>\n"
             "  openstuffit dump [--json] (--headers|--forks|--entry index-or-path|--hex offset:length) <input>\n");
 }
 
@@ -313,6 +313,9 @@ static int cmd_list(int argc, char **argv) {
 
 static int cmd_extract(int argc, char **argv) {
     ost_extract_options opts;
+    const char **include_paths = NULL;
+    size_t include_count = 0;
+    size_t include_cap = 0;
     memset(&opts, 0, sizeof(opts));
     opts.output_dir = ".";
     opts.forks = OST_FORKS_SKIP;
@@ -340,8 +343,23 @@ static int cmd_extract(int argc, char **argv) {
             opts.preserve_time = false;
         } else if (strcmp(argv[i], "--no-verify-crc") == 0) {
             opts.verify_crc = false;
+        } else if (strcmp(argv[i], "--entry") == 0 && i + 1 < argc) {
+            if (include_count == include_cap) {
+                size_t next_cap = include_cap ? include_cap * 2u : 8u;
+                const char **next_paths = (const char **)realloc((void *)include_paths, sizeof(*include_paths) * next_cap);
+                if (!next_paths) {
+                    free((void *)include_paths);
+                    return 1;
+                }
+                include_paths = next_paths;
+                include_cap = next_cap;
+            }
+            include_paths[include_count++] = argv[++i];
         } else if (strcmp(argv[i], "--unicode-normalization") == 0 && i + 1 < argc) {
-            if (!parse_normalization_option(argv[++i], &normalization)) return 5;
+            if (!parse_normalization_option(argv[++i], &normalization)) {
+                free((void *)include_paths);
+                return 5;
+            }
         } else if (strcmp(argv[i], "--forks") == 0 && i + 1 < argc) {
             const char *mode = argv[++i];
             if (strcmp(mode, "skip") == 0) opts.forks = OST_FORKS_SKIP;
@@ -351,6 +369,7 @@ static int cmd_extract(int argc, char **argv) {
             else if (strcmp(mode, "native") == 0) opts.forks = OST_FORKS_NATIVE;
             else {
                 fprintf(stderr, "unsupported --forks mode: %s\n", mode);
+                free((void *)include_paths);
                 return 5;
             }
         } else if (strcmp(argv[i], "--finder") == 0 && i + 1 < argc) {
@@ -359,6 +378,7 @@ static int cmd_extract(int argc, char **argv) {
             else if (strcmp(mode, "sidecar") == 0) opts.finder = OST_FINDER_SIDECAR;
             else {
                 fprintf(stderr, "unsupported --finder mode: %s\n", mode);
+                free((void *)include_paths);
                 return 5;
             }
         } else {
@@ -367,8 +387,11 @@ static int cmd_extract(int argc, char **argv) {
     }
     if (input < 0) {
         usage(stderr);
+        free((void *)include_paths);
         return 5;
     }
+    opts.include_paths = include_paths;
+    opts.include_path_count = include_count;
 
     input_file loaded;
     ost_archive archive;
@@ -380,6 +403,7 @@ static int cmd_extract(int argc, char **argv) {
         ost_archive_free(&archive);
     }
     input_file_free(&loaded);
+    free((void *)include_paths);
     if (st == OST_OK || st == OST_ERR_UNSUPPORTED) {
         fprintf(stderr, "extract summary: extracted=%llu skipped=%llu unsupported=%llu checksum_errors=%llu\n",
                 (unsigned long long)opts.extracted_files,

@@ -46,6 +46,15 @@ grep -q '"status":"ok"' "$tmp/extract.out" || failures=$((failures + 1))
 test -f "$tmp/out/testfile.txt" || failures=$((failures + 1))
 cmp -s "$tmp/out/testfile.txt" reference_repos/stuffit-test-files/sources/testfile.txt || failures=$((failures + 1))
 
+expect_rc 0 extract_selected "$bin" extract --overwrite --output-dir "$tmp/out_selected" --entry testfile.txt "$fixture_sit"
+grep -q '"extracted_files":1' "$tmp/extract_selected.out" || failures=$((failures + 1))
+test -f "$tmp/out_selected/testfile.txt" || failures=$((failures + 1))
+test ! -e "$tmp/out_selected/testfile.jpg" || failures=$((failures + 1))
+
+expect_rc 0 extract_selected_slash "$bin" extract --overwrite --output-dir "$tmp/out_selected_slash" --entry /testfile.png "$fixture_sit"
+test -f "$tmp/out_selected_slash/testfile.png" || failures=$((failures + 1))
+test ! -e "$tmp/out_selected_slash/testfile.txt" || failures=$((failures + 1))
+
 expect_rc 4 extract_password_required "$bin" extract --overwrite --output-dir "$tmp/pw_required" "$fixture_pw"
 expect_rc 4 extract_password_bad "$bin" extract --password wrong --overwrite --output-dir "$tmp/pw_bad" "$fixture_pw"
 expect_rc 0 extract_password_ok "$bin" extract --password password --overwrite --output-dir "$tmp/pw_ok" "$fixture_pw"

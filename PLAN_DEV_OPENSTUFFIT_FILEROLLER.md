@@ -40,7 +40,7 @@
 
 - Linux 환경
 - `.sit`, `.sea`, `.sea.bin` (File Roller MIME 경로상 `application/x-stuffit`)
-- 목록 조회(list) + 전체 추출(extract)
+- 목록 조회(list) + 추출(extract, 전체/선택)
 - 비밀번호/포맷오류/미지원 오류 전달
 - Unicode normalization 옵션 연동 (`none|nfc|nfd`)
 
@@ -49,7 +49,6 @@
 - `.sitx` 실제 해제 지원 (미지원 유지, 오류 매핑만)
 - File Roller 전체 아키텍처 변경
 - Windows `.exe` SFX 경로
-- 부분 선택 추출(file_list) 완전 지원 (2단계 과제로 분리)
 
 
 ## 4. 개발 산출물(파일 단위)
@@ -113,7 +112,7 @@
 ```text
 openstuffit-fr-bridge identify --json <archive>
 openstuffit-fr-bridge list --json <archive> [--password <text>] [--unicode-normalization none|nfc|nfd]
-openstuffit-fr-bridge extract --output-dir <dir> <archive> [--password <text>] [--overwrite|--skip-existing|--rename-existing] [--forks skip|rsrc|appledouble|both|native] [--finder skip|sidecar] [--unicode-normalization none|nfc|nfd]
+openstuffit-fr-bridge extract --output-dir <dir> <archive> [--password <text>] [--overwrite|--skip-existing|--rename-existing] [--forks skip|rsrc|appledouble|both|native] [--finder skip|sidecar] [--unicode-normalization none|nfc|nfd] [--entry <path>]...
 ```
 
 exit code:
@@ -333,8 +332,8 @@ file-roller 개발 빌드:
 1. File Roller 내부 API 변동  
 대응: 현재 로컬 clone 기준으로 패치 작성, 추후 버전은 rebase 검증
 
-2. 선택 추출 미지원  
-대응: 1차는 전체 추출 우선, 2차에 선택 추출 추가
+2. 선택 추출 경로 매핑 오류  
+대응: `from_file`/`file_list`를 `--entry`로 전달하고 bridge/CLI 테스트로 회귀 방지
 
 3. 경로/환경 차이로 bridge 탐색 실패  
 대응: `OPENSTUFFIT_FR_BRIDGE` 우선 사용
@@ -349,7 +348,7 @@ file-roller 개발 빌드:
 
 1. `build/openstuffit-fr-bridge` 빌드 및 동작
 2. File Roller(local track)가 `application/x-stuffit`에서 openstuffit backend를 우선 사용
-3. `.sit`/`.sea.bin` 목록+전체추출 성공
+3. `.sit`/`.sea.bin` 목록+전체/선택 추출 성공
 4. 비밀번호/미지원/포맷 오류가 의도한 `FrError`로 표시
 5. 패치 파일 생성: `package/linux/patches/file-roller-local/0001-openstuffit-backend-3.40.0.patch`
 6. `make test`, `make distcheck`, `ninja -C _build test` 통과

@@ -21,7 +21,7 @@ static void usage(FILE *fp) {
             "Usage:\n"
             "  openstuffit-fr-bridge identify --json <archive>\n"
             "  openstuffit-fr-bridge list --json <archive> [--password <text>] [--unicode-normalization none|nfc|nfd]\n"
-            "  openstuffit-fr-bridge extract --output-dir <dir> <archive> [--password <text>] [--overwrite|--skip-existing|--rename-existing] [--forks skip|rsrc|appledouble|both|native] [--finder skip|sidecar] [--unicode-normalization none|nfc|nfd]\n");
+            "  openstuffit-fr-bridge extract --output-dir <dir> <archive> [--password <text>] [--overwrite|--skip-existing|--rename-existing] [--forks skip|rsrc|appledouble|both|native] [--finder skip|sidecar] [--unicode-normalization none|nfc|nfd] [--entry <path>]...\n");
 }
 
 static int exit_code_for_status(ost_status st) {
@@ -256,6 +256,9 @@ static int cmd_list(int argc, char **argv) {
 static int cmd_extract(int argc, char **argv) {
     const char *input = NULL;
     ost_extract_options options;
+    const char **include_paths = NULL;
+    size_t include_count = 0;
+    size_t include_cap = 0;
     ost_unicode_normalization normalization = OST_UNICODE_NORMALIZE_NFC;
     bridge_input loaded;
     ost_status st;
@@ -277,44 +280,70 @@ static int cmd_extract(int argc, char **argv) {
         else if (strcmp(argv[i], "--forks") == 0 && i + 1 < argc) {
             if (!parse_fork_mode(argv[++i], &options.forks)) {
                 fprintf(stderr, "unsupported --forks mode: %s\n", argv[i]);
+                free((void *)include_paths);
                 return 5;
             }
         } else if (strcmp(argv[i], "--finder") == 0 && i + 1 < argc) {
             if (!parse_finder_mode(argv[++i], &options.finder)) {
                 fprintf(stderr, "unsupported --finder mode: %s\n", argv[i]);
+                free((void *)include_paths);
                 return 5;
             }
         } else if (strcmp(argv[i], "--unicode-normalization") == 0 && i + 1 < argc) {
-            if (!parse_normalization(argv[++i], &normalization)) return 5;
+            if (!parse_normalization(argv[++i], &normalization)) {
+                free((void *)include_paths);
+                return 5;
+            }
+        } else if (strcmp(argv[i], "--entry") == 0 && i + 1 < argc) {
+            if (include_count == include_cap) {
+                size_t next_cap = include_cap ? include_cap * 2u : 8u;
+                const char **next_paths = (const char **)realloc((void *)include_paths, sizeof(*include_paths) * next_cap);
+                if (!next_paths) {
+                    fprintf(stderr, "openstuffit-fr-bridge extract: out of memory\n");
+                    free((void *)include_paths);
+                    return 1;
+                }
+                include_paths = next_paths;
+                include_cap = next_cap;
+            }
+            include_paths[include_count++] = argv[++i];
         } else if (argv[i][0] == '-') {
             usage(stderr);
+            free((void *)include_paths);
             return 5;
         } else if (!input) {
             input = argv[i];
         } else {
             usage(stderr);
+            free((void *)include_paths);
             return 5;
         }
     }
     if (!input) {
         usage(stderr);
+        free((void *)include_paths);
         return 5;
     }
+    options.include_paths = include_paths;
+    options.include_path_count = include_count;
 
     st = bridge_input_open(input, normalization, &loaded);
     if (st != OST_OK) {
         bridge_input_free(&loaded);
+        free((void *)include_paths);
         return fail_status("extract", input, st);
     }
 
     st = ost_archive_handle_extract(loaded.handle, &options);
     if (st != OST_OK) {
         bridge_input_free(&loaded);
+        free((void *)include_paths);
         return fail_status("extract", input, st);
     }
 
     print_extract_json(&options);
     bridge_input_free(&loaded);
+    free((void *)include_paths);
     return 0;
 }
 

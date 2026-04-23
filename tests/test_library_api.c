@@ -65,6 +65,10 @@ int main(void) {
     const char *path = "reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sit";
     const char *out_dir = "/tmp/openstuffit_api_extract";
     const char *out_file = "/tmp/openstuffit_api_extract/testfile.txt";
+    const char *out_sel_dir = "/tmp/openstuffit_api_extract_selected";
+    const char *out_sel_file = "/tmp/openstuffit_api_extract_selected/testfile.txt";
+    const char *out_sel_unexpected = "/tmp/openstuffit_api_extract_selected/testfile.jpg";
+    const char *selected_paths[] = {"testfile.txt"};
     ost_buffer buf;
     ost_detection det;
     ost_archive archive;
@@ -160,6 +164,30 @@ int main(void) {
     st = ost_archive_extract(&archive, &extract_options);
     if (st != OST_OK || extract_options.extracted_files == 0 || !file_exists(out_file)) {
         fprintf(stderr, "ost_archive_extract failed: %s extracted=%zu\n",
+                ost_status_string(st), extract_options.extracted_files);
+        ost_archive_free(&archive);
+        ost_buffer_free(&buf);
+        return 1;
+    }
+
+    if (system("rm -rf /tmp/openstuffit_api_extract_selected") != 0) {
+        fprintf(stderr, "failed to clean selected extract output\n");
+        ost_archive_free(&archive);
+        ost_buffer_free(&buf);
+        return 1;
+    }
+    memset(&extract_options, 0, sizeof(extract_options));
+    extract_options.output_dir = out_sel_dir;
+    extract_options.forks = OST_FORKS_SKIP;
+    extract_options.finder = OST_FINDER_SKIP;
+    extract_options.collision = OST_COLLISION_OVERWRITE;
+    extract_options.preserve_time = false;
+    extract_options.verify_crc = true;
+    extract_options.include_paths = selected_paths;
+    extract_options.include_path_count = sizeof(selected_paths) / sizeof(selected_paths[0]);
+    st = ost_archive_extract(&archive, &extract_options);
+    if (st != OST_OK || extract_options.extracted_files != 1 || !file_exists(out_sel_file) || file_exists(out_sel_unexpected)) {
+        fprintf(stderr, "selected ost_archive_extract failed: %s extracted=%zu\n",
                 ost_status_string(st), extract_options.extracted_files);
         ost_archive_free(&archive);
         ost_buffer_free(&buf);
