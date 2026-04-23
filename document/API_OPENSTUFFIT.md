@@ -186,7 +186,13 @@ uses the public library API for external backend integration:
 openstuffit-fr-bridge identify --json <archive>
 openstuffit-fr-bridge list --json <archive> [--password <text>] [--unicode-normalization none|nfc|nfd]
 openstuffit-fr-bridge extract --output-dir <dir> <archive> [--password <text>] [--overwrite|--skip-existing|--rename-existing] [--forks skip|rsrc|appledouble|both|native] [--finder skip|sidecar] [--unicode-normalization none|nfc|nfd] [--entry <path>]...
+openstuffit-fr-bridge create --output <archive.sit> [--follow-links|--no-follow-links] [--type XXXX] [--creator XXXX] [<input>...]
+openstuffit-fr-bridge add --base-dir <dir> [--follow-links|--no-follow-links] [--update] --entry <path>... <archive>
+openstuffit-fr-bridge delete --entry <path>... <archive>
 ```
+
+Bridge write operations (`create`, `add`, `delete`) currently target classic raw
+SIT archives and return `unsupported` for encrypted/resource-fork write flows.
 
 Bridge exit code mapping:
 

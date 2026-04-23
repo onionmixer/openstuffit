@@ -51,7 +51,8 @@ LIB_OBJS := \
 	$(BUILD_DIR)/ost_macroman.o \
 	$(BUILD_DIR)/ost_sit13.o \
 	$(BUILD_DIR)/ost_sit15.o \
-	$(BUILD_DIR)/ost_unicode.o
+	$(BUILD_DIR)/ost_unicode.o \
+	$(BUILD_DIR)/ost_write.o
 
 LIB_PIC_OBJS := $(patsubst $(BUILD_DIR)/%.o,$(BUILD_DIR)/pic/%.o,$(LIB_OBJS))
 LIB_STATIC := $(BUILD_DIR)/libopenstuffit.a
@@ -186,6 +187,20 @@ test-cli: $(BUILD_DIR)/openstuffit
 	$(BUILD_DIR)/openstuffit dump --entry 5 reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sit | grep -q "path: testfile.txt"
 	$(BUILD_DIR)/openstuffit dump --entry testfile.txt reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sit | grep -q "data fork: present=yes offset=2792 size=12"
 	$(BUILD_DIR)/openstuffit dump --json --entry 5 reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sit | grep -q '"path":"testfile.txt"'
+	rm -f /tmp/openstuffit_create_smoke.sit
+	$(BUILD_DIR)/openstuffit create -o /tmp/openstuffit_create_smoke.sit reference_repos/stuffit-test-files/sources/testfile.txt
+	$(BUILD_DIR)/openstuffit list /tmp/openstuffit_create_smoke.sit | grep -q "testfile.txt"
+	rm -rf /tmp/openstuffit_create_dir_input /tmp/openstuffit_extract_dir_selected
+	rm -f /tmp/openstuffit_create_dir_smoke.sit
+	mkdir -p /tmp/openstuffit_create_dir_input/dirA/sub
+	printf "root\n" > /tmp/openstuffit_create_dir_input/root.txt
+	printf "nested\n" > /tmp/openstuffit_create_dir_input/dirA/sub/file.txt
+	$(BUILD_DIR)/openstuffit create -o /tmp/openstuffit_create_dir_smoke.sit /tmp/openstuffit_create_dir_input/root.txt /tmp/openstuffit_create_dir_input/dirA
+	$(BUILD_DIR)/openstuffit list /tmp/openstuffit_create_dir_smoke.sit | grep -q "dirA/sub/file.txt"
+	$(BUILD_DIR)/openstuffit extract --overwrite -o /tmp/openstuffit_extract_dir_selected --entry dirA /tmp/openstuffit_create_dir_smoke.sit
+	test -d /tmp/openstuffit_extract_dir_selected/dirA/sub
+	test -f /tmp/openstuffit_extract_dir_selected/dirA/sub/file.txt
+	test ! -e /tmp/openstuffit_extract_dir_selected/root.txt
 	rm -rf /tmp/openstuffit_extract_smoke
 	$(BUILD_DIR)/openstuffit extract --overwrite -o /tmp/openstuffit_extract_smoke reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sit
 	test -f "/tmp/openstuffit_extract_smoke/Test Text"

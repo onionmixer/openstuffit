@@ -149,6 +149,7 @@ OPENSTUFFIT_CORPUS_DIR=/path/to/corpus make test-corpus-matrix
 build/openstuffit identify [--json] [--show-forks] <input>...
 build/openstuffit list [-l|-L] [--json] [--unicode-normalization none|nfc|nfd] <input>
 build/openstuffit extract [-o dir] [--password text] [--overwrite|--skip-existing|--rename-existing] [--preserve-time|--no-preserve-time] [--no-verify-crc] [--forks skip|rsrc|appledouble|both|native] [--finder skip|sidecar] [--unicode-normalization none|nfc|nfd] [--entry path]... <input>
+build/openstuffit create -o <output.sit> [--follow-links|--no-follow-links] [-T type] [-C creator] <input>...
 build/openstuffit dump [--json] (--headers|--forks|--entry index-or-path|--hex offset:length) <input>
 ```
 
@@ -158,6 +159,7 @@ Examples:
 build/openstuffit identify --json --show-forks sample.sea.bin
 build/openstuffit list -L archive.sit
 build/openstuffit extract --overwrite --forks both -o out archive.sit
+build/openstuffit create -o out.sit source_dir
 build/openstuffit extract --overwrite -o out --entry testfile.txt archive.sit
 build/openstuffit dump --json --entry testfile.txt archive.sit
 ```
@@ -171,14 +173,31 @@ backend integration:
 build/openstuffit-fr-bridge identify --json archive.sit
 build/openstuffit-fr-bridge list --json archive.sit
 build/openstuffit-fr-bridge extract --output-dir out --overwrite archive.sit
+build/openstuffit-fr-bridge create --output out.sit source_dir
+build/openstuffit-fr-bridge add --base-dir src --entry path/in/archive.txt archive.sit
+build/openstuffit-fr-bridge delete --entry obsolete.txt archive.sit
 build/openstuffit-fr-bridge extract --output-dir out --overwrite --entry testfile.txt archive.sit
 ```
+
+Current write path (`create`/`add`/`delete`) is intentionally limited to classic raw
+SIT archives without encrypted or resource forks. Unsupported write targets return
+an explicit error.
 
 Bridge tests:
 
 ```sh
 make test-fr-bridge
 ```
+
+`make test-fr-bridge` includes selected extraction coverage (`--entry`) so
+single-entry extraction regressions are caught in CI/local runs.
+
+It also covers directory write flows end-to-end:
+
+- create archive from directory trees (directory entry emission)
+- add directory trees into existing archives
+- delete directory trees from existing archives (recursive removal semantics)
+- extract by directory selector (`--entry <directory>`) and verify subtree output
 
 ## File Roller Local Track
 
@@ -203,6 +222,21 @@ Run File Roller with the bridge path explicitly set:
 OPENSTUFFIT_FR_BRIDGE=/mnt/USERS/onion/DATA_ORIGN/Workspace/openstuffit/build/openstuffit-fr-bridge \
 reference_repos/file-roller-local/_build/src/file-roller
 ```
+
+Open a target archive directly:
+
+```sh
+OPENSTUFFIT_FR_BRIDGE=/mnt/USERS/onion/DATA_ORIGN/Workspace/openstuffit/build/openstuffit-fr-bridge \
+reference_repos/file-roller-local/_build/src/file-roller \
+reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sit
+```
+
+Selection behavior:
+
+- extracting all entries: no `--entry` arguments
+- extracting selected entries (including drag-out of one selected file): backend
+  passes repeated `--entry <path>` to `openstuffit-fr-bridge`
+- path mapping strips leading `/` before passing entries to the bridge
 
 Patch artifacts:
 

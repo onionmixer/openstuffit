@@ -6,6 +6,7 @@
 #include "ost_extract.h"
 #include "ost_io.h"
 #include "ost_unicode.h"
+#include "ost_write.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -28,6 +29,7 @@ static void usage(FILE *fp) {
             "  openstuffit identify [--json] [--show-forks] <input>...\n"
             "  openstuffit list [-l|-L] [--json] [--unicode-normalization none|nfc|nfd] <input>\n"
             "  openstuffit extract [-o dir] [--password text] [--overwrite|--skip-existing|--rename-existing] [--preserve-time|--no-preserve-time] [--no-verify-crc] [--forks skip|rsrc|appledouble|both|native] [--finder skip|sidecar] [--unicode-normalization none|nfc|nfd] [--entry path]... <input>\n"
+            "  openstuffit create -o <output.sit> [--follow-links|--no-follow-links] [-T type] [-C creator] <input>...\n"
             "  openstuffit dump [--json] (--headers|--forks|--entry index-or-path|--hex offset:length) <input>\n");
 }
 
@@ -416,6 +418,60 @@ static int cmd_extract(int argc, char **argv) {
     return exit_code_for_status(st);
 }
 
+static int cmd_create(int argc, char **argv) {
+    ost_create_options opts;
+    int first_input = -1;
+    ost_status st;
+
+    ost_create_options_init(&opts);
+
+    for (int i = 0; i < argc; i++) {
+        if ((strcmp(argv[i], "-o") == 0 || strcmp(argv[i], "--output") == 0) && i + 1 < argc) {
+            opts.output_path = argv[++i];
+        } else if (strcmp(argv[i], "--follow-links") == 0) {
+            opts.follow_links = true;
+        } else if (strcmp(argv[i], "--no-follow-links") == 0) {
+            opts.follow_links = false;
+        } else if (strcmp(argv[i], "-T") == 0 || strcmp(argv[i], "--type") == 0) {
+            const char *code = NULL;
+            if (i + 1 < argc) code = argv[++i];
+            if (!code || strlen(code) != 4u) {
+                fprintf(stderr, "openstuffit create: --type requires 4 characters\n");
+                return 5;
+            }
+            memcpy(opts.default_type, code, 4u);
+        } else if (strcmp(argv[i], "-C") == 0 || strcmp(argv[i], "--creator") == 0) {
+            const char *code = NULL;
+            if (i + 1 < argc) code = argv[++i];
+            if (!code || strlen(code) != 4u) {
+                fprintf(stderr, "openstuffit create: --creator requires 4 characters\n");
+                return 5;
+            }
+            memcpy(opts.default_creator, code, 4u);
+        } else if (argv[i][0] == '-') {
+            usage(stderr);
+            return 5;
+        } else if (first_input < 0) {
+            first_input = i;
+            break;
+        }
+    }
+
+    if (!opts.output_path || first_input < 0) {
+        usage(stderr);
+        return 5;
+    }
+
+    opts.input_paths = (const char *const *)(argv + first_input);
+    opts.input_path_count = (size_t)(argc - first_input);
+    st = ost_write_sit_classic(&opts);
+    if (st != OST_OK) {
+        fprintf(stderr, "openstuffit create: %s\n", ost_status_string(st));
+        return exit_code_for_status(st);
+    }
+    return 0;
+}
+
 int main(int argc, char **argv) {
     if (argc < 2) {
         usage(stderr);
@@ -432,6 +488,7 @@ int main(int argc, char **argv) {
     if (strcmp(argv[1], "identify") == 0) return cmd_identify(argc - 2, argv + 2);
     if (strcmp(argv[1], "list") == 0) return cmd_list(argc - 2, argv + 2);
     if (strcmp(argv[1], "extract") == 0) return cmd_extract(argc - 2, argv + 2);
+    if (strcmp(argv[1], "create") == 0 || strcmp(argv[1], "archive") == 0) return cmd_create(argc - 2, argv + 2);
     if (strcmp(argv[1], "dump") == 0) return cmd_dump(argc - 2, argv + 2);
 
     usage(stderr);
