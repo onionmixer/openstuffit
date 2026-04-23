@@ -29,5 +29,6 @@ package/linux/*.tgz
 .DS_Store
 
 PLAN_DEV_OPENSTUFFIT.md
+memo.txt
 examples/
 reference_repos/
