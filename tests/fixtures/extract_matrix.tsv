@@ -1,0 +1,13 @@
+# id|path|manifest
+sit45_raw|reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sit|tests/expected/extract_stuffit45_mac9.tsv
+sea45_bin|reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sea.bin|tests/expected/extract_stuffit45_mac9.tsv
+sea45_as|reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sea.AS|tests/expected/extract_stuffit45_mac9.tsv
+sit45_hqx|reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sit.hqx|tests/expected/extract_stuffit45_mac9.tsv
+sea45_hqx|reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sea.hqx|tests/expected/extract_stuffit45_mac9.tsv
+sit651_mac9|reference_repos/stuffit-test-files/build/testfile.stuffit651_dlx.mac9.sit|tests/expected/extract_stuffit45_mac9.tsv
+sit651_macx1|reference_repos/stuffit-test-files/build/testfile.stuffit651_dlx.macx1.sit|tests/expected/extract_stuffit45_mac9.tsv
+sit651_as|reference_repos/stuffit-test-files/build/testfile.stuffit651_dlx.mac9.sit.as|tests/expected/extract_stuffit45_mac9.tsv
+sit7_mac9|reference_repos/stuffit-test-files/build/testfile.stuffit7_dlx.mac9.sit|tests/expected/extract_stuffit45_mac9.tsv
+sit7_macx1|reference_repos/stuffit-test-files/build/testfile.stuffit7_dlx.macx1.sit|tests/expected/extract_stuffit45_mac9.tsv
+sit7_as|reference_repos/stuffit-test-files/build/testfile.stuffit7_dlx.mac9.sit.as|tests/expected/extract_stuffit45_mac9.tsv
+sit7_win|reference_repos/stuffit-test-files/build/testfile.stuffit7.win.sit|tests/expected/extract_stuffit7_win.tsv

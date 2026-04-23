@@ -1,0 +1,10 @@
+prefix=@PREFIX@
+libdir=@LIBDIR@
+includedir=@INCLUDEDIR@
+
+Name: openstuffit
+Description: C library for inspecting and extracting classic StuffIt archives
+Version: @VERSION@
+Libs: -L${libdir} -lopenstuffit
+Libs.private: -lz
+Cflags: -I${includedir}

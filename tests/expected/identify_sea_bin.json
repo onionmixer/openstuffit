@@ -1,0 +1,1 @@
+{"input":"reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sea.bin","status":"ok","wrapper":"macbinary","format":"sit-classic","supported":true,"payload_offset":128,"payload_size":2804,"forks":{"data":{"present":true,"offset":128,"size":2804},"resource":{"present":true,"offset":2944,"size":25090}},"finder":{"type":"APPL","creator":"aust"}}

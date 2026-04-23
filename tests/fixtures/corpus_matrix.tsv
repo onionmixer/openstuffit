@@ -1,0 +1,7 @@
+# path	expected_identify	expected_list	expected_extract
+reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sit	OK	OK	OK
+reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sea.bin	OK	OK	OK
+reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sit.hqx	OK	OK	OK
+reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sea.hqx	OK	OK	OK
+reference_repos/stuffit-test-files/build/testfile.stuffit7.win.sit	OK	OK	OK
+reference_repos/stuffit-test-files/build/testfile.stuffit7_dlx.mac9.sitx	UNSUPPORTED	UNSUPPORTED	UNSUPPORTED
