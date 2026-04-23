@@ -60,15 +60,18 @@ LIB_SHARED_ABI := $(BUILD_DIR)/$(SHARED_LIB_ABI_NAME)
 LIB_SHARED := $(BUILD_DIR)/$(SHARED_LIB_LINK_NAME)
 PKG_CONFIG_FILE := $(BUILD_DIR)/openstuffit.pc
 CLI_OBJS := $(BUILD_DIR)/openstuffit.o
+BRIDGE_OBJS := \
+	$(BUILD_DIR)/bridge/openstuffit-fr-bridge.o \
+	$(BUILD_DIR)/bridge/openstuffit_fr_bridge_json.o
 TEST_OBJS := $(BUILD_DIR)/test_m1.o
 TEST_LIB_OBJS := $(BUILD_DIR)/test_library_api.o
 EXAMPLE_OBJS := $(BUILD_DIR)/examples/list_archive.o
 PUBLIC_HEADERS := $(INCLUDE_DIR)/openstuffit/openstuffit.h
-DEPFILES := $(LIB_OBJS:.o=.d) $(LIB_PIC_OBJS:.o=.d) $(CLI_OBJS:.o=.d) $(TEST_OBJS:.o=.d) $(TEST_LIB_OBJS:.o=.d) $(EXAMPLE_OBJS:.o=.d)
+DEPFILES := $(LIB_OBJS:.o=.d) $(LIB_PIC_OBJS:.o=.d) $(CLI_OBJS:.o=.d) $(BRIDGE_OBJS:.o=.d) $(TEST_OBJS:.o=.d) $(TEST_LIB_OBJS:.o=.d) $(EXAMPLE_OBJS:.o=.d)
 
-.PHONY: all lib lib-static lib-shared examples clean test test-unit test-library test-library-static test-library-shared test-examples test-symbols test-install test-pkg-config test-corpus-matrix test-cli test-cli-errors test-password test-fixtures test-list-matrix test-extract-matrix test-generated-method-fixtures test-generator-selftest test-json-schema test-json-golden test-error-golden test-path-safety test-large-fixtures test-unicode-filenames test-native-forks test-identify-all test-corrupt test-fuzz-smoke test-docs test-method-scan test-valgrind test-clang test-werror test-cppcheck test-scan-build test-shellcheck build-xadmaster test-xad-compare test-report test-sanitize distcheck distcheck-tarball install uninstall dist format
+.PHONY: all lib lib-static lib-shared examples clean test test-unit test-library test-library-static test-library-shared test-examples test-symbols test-install test-pkg-config test-corpus-matrix test-cli test-cli-errors test-password test-fixtures test-list-matrix test-extract-matrix test-fr-bridge test-generated-method-fixtures test-generator-selftest test-json-schema test-json-golden test-error-golden test-path-safety test-large-fixtures test-unicode-filenames test-native-forks test-identify-all test-corrupt test-fuzz-smoke test-docs test-method-scan test-valgrind test-clang test-werror test-cppcheck test-scan-build test-shellcheck build-xadmaster test-xad-compare test-report test-sanitize distcheck distcheck-tarball install uninstall dist format
 
-all: $(BUILD_DIR)/openstuffit lib $(PKG_CONFIG_FILE)
+all: $(BUILD_DIR)/openstuffit $(BUILD_DIR)/openstuffit-fr-bridge lib $(PKG_CONFIG_FILE)
 
 lib: lib-static lib-shared
 
@@ -88,6 +91,9 @@ $(BUILD_DIR)/examples:
 	mkdir -p $(BUILD_DIR)/examples
 
 $(BUILD_DIR)/openstuffit: $(LIB_OBJS) $(CLI_OBJS) | $(BUILD_DIR)
+	$(CC) $(ALL_CFLAGS) $^ -o $@ $(LDLIBS)
+
+$(BUILD_DIR)/openstuffit-fr-bridge: $(LIB_OBJS) $(BRIDGE_OBJS) | $(BUILD_DIR)
 	$(CC) $(ALL_CFLAGS) $^ -o $@ $(LDLIBS)
 
 $(LIB_STATIC): $(LIB_OBJS) | $(BUILD_DIR)
@@ -122,18 +128,22 @@ $(BUILD_DIR)/examples/list_archive: $(BUILD_DIR)/examples/list_archive.o $(LIB_S
 	$(CC) $(ALL_CFLAGS) $(BUILD_DIR)/examples/list_archive.o -L$(BUILD_DIR) -lopenstuffit -Wl,-rpath,'$$ORIGIN/..' -o $@ $(LDLIBS)
 
 $(BUILD_DIR)/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)
+	mkdir -p $(dir $@)
 	$(CC) $(ALL_CFLAGS) $(DEPFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/pic/%.o: $(SRC_DIR)/%.c | $(BUILD_DIR)/pic
+	mkdir -p $(dir $@)
 	$(CC) $(ALL_CFLAGS) -fPIC $(DEPFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/%.o: $(TEST_DIR)/%.c | $(BUILD_DIR)
+	mkdir -p $(dir $@)
 	$(CC) $(ALL_CFLAGS) $(DEPFLAGS) -c $< -o $@
 
 $(BUILD_DIR)/examples/%.o: $(EXAMPLE_DIR)/%.c | $(BUILD_DIR)/examples
+	mkdir -p $(dir $@)
 	$(CC) $(ALL_CFLAGS) $(DEPFLAGS) -c $< -o $@
 
-test: test-unit test-library test-examples test-symbols test-pkg-config test-corpus-matrix test-cli test-cli-errors test-error-golden test-password test-list-matrix test-extract-matrix test-generated-method-fixtures test-generator-selftest test-json-schema test-json-golden test-path-safety test-large-fixtures test-unicode-filenames test-native-forks
+test: test-unit test-library test-examples test-symbols test-pkg-config test-corpus-matrix test-cli test-cli-errors test-error-golden test-password test-list-matrix test-extract-matrix test-fr-bridge test-generated-method-fixtures test-generator-selftest test-json-schema test-json-golden test-path-safety test-large-fixtures test-unicode-filenames test-native-forks
 
 test-unit: $(BUILD_DIR)/test_m1
 	$(BUILD_DIR)/test_m1
@@ -280,6 +290,9 @@ test-list-matrix: $(BUILD_DIR)/openstuffit
 test-extract-matrix: $(BUILD_DIR)/openstuffit
 	bash tools/run_extract_matrix.sh $(BUILD_DIR)/openstuffit tests/fixtures/extract_matrix.tsv
 
+test-fr-bridge: $(BUILD_DIR)/openstuffit-fr-bridge
+	bash tests/test_fr_bridge.sh $(BUILD_DIR)/openstuffit-fr-bridge
+
 test-generated-method-fixtures: $(BUILD_DIR)/openstuffit
 	bash tools/run_generated_method_fixtures.sh $(BUILD_DIR)/openstuffit
 
@@ -364,9 +377,10 @@ distcheck:
 distcheck-tarball: dist
 	bash tools/run_distcheck_tarball.sh "$(DIST_TARBALL)"
 
-install: $(BUILD_DIR)/openstuffit $(LIB_STATIC) $(LIB_SHARED)
+install: $(BUILD_DIR)/openstuffit $(BUILD_DIR)/openstuffit-fr-bridge $(LIB_STATIC) $(LIB_SHARED)
 	install -d "$(DESTDIR)$(BINDIR)" "$(DESTDIR)$(LIBDIR)" "$(DESTDIR)$(INCLUDEDIR)/openstuffit" "$(DESTDIR)$(PKGCONFIGDIR)"
 	install -m 0755 $(BUILD_DIR)/openstuffit "$(DESTDIR)$(BINDIR)/openstuffit"
+	install -m 0755 $(BUILD_DIR)/openstuffit-fr-bridge "$(DESTDIR)$(BINDIR)/openstuffit-fr-bridge"
 	install -m 0644 $(LIB_STATIC) "$(DESTDIR)$(LIBDIR)/libopenstuffit.a"
 	install -m 0755 $(LIB_SHARED_REAL) "$(DESTDIR)$(LIBDIR)/$(SHARED_LIB_REAL_NAME)"
 	ln -sf $(SHARED_LIB_REAL_NAME) "$(DESTDIR)$(LIBDIR)/$(SHARED_LIB_ABI_NAME)"
@@ -380,6 +394,7 @@ install: $(BUILD_DIR)/openstuffit $(LIB_STATIC) $(LIB_SHARED)
 
 uninstall:
 	rm -f "$(DESTDIR)$(BINDIR)/openstuffit"
+	rm -f "$(DESTDIR)$(BINDIR)/openstuffit-fr-bridge"
 	rm -f "$(DESTDIR)$(LIBDIR)/libopenstuffit.a"
 	rm -f "$(DESTDIR)$(LIBDIR)/$(SHARED_LIB_LINK_NAME)"
 	rm -f "$(DESTDIR)$(LIBDIR)/$(SHARED_LIB_ABI_NAME)"

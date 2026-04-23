@@ -176,6 +176,26 @@ make distcheck-tarball
 
 `examples/list_archive.c` is built and run by `make test-examples`. It intentionally includes only `<openstuffit/openstuffit.h>`.
 
+## File Roller Bridge CLI
+
+The repository also ships `openstuffit-fr-bridge`, a small executable that
+uses the public library API for external backend integration:
+
+```text
+openstuffit-fr-bridge identify --json <archive>
+openstuffit-fr-bridge list --json <archive> [--password <text>] [--unicode-normalization none|nfc|nfd]
+openstuffit-fr-bridge extract --output-dir <dir> <archive> [--password <text>] [--overwrite|--skip-existing|--rename-existing] [--forks skip|rsrc|appledouble|both|native] [--finder skip|sidecar] [--unicode-normalization none|nfc|nfd]
+```
+
+Bridge exit code mapping:
+
+- `0`: success
+- `1`: I/O or internal error
+- `2`: unsupported format or feature
+- `3`: bad format or checksum
+- `4`: password required or bad password
+- `5`: usage error
+
 ## Corpus Testing
 
 `make test-corpus-matrix` runs representative checked-in `.sit`, `.sea`, `.hqx`, and unsupported `.sitx` cases from `tests/fixtures/corpus_matrix.tsv`.

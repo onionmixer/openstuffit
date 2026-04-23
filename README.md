@@ -22,6 +22,7 @@ The default build uses `cc` and links with zlib. It builds the CLI program,
 static library, shared library, and pkg-config metadata:
 
 - `build/openstuffit`
+- `build/openstuffit-fr-bridge`
 - `build/libopenstuffit.a`
 - `build/libopenstuffit.so`
 - `build/openstuffit.pc`
@@ -43,7 +44,29 @@ make test-cppcheck
 make distcheck
 ```
 
+`make test` is the full local matrix and assumes local fixture/tool repositories
+exist under `reference_repos/` and the local `examples/` tree is present.
+
 `test-scan-build` and `test-shellcheck` are optional and skip when the corresponding tool is not installed.
+
+## Local Setup
+
+This repository is configured to keep large research assets and local planning
+notes outside normal version tracking (`.gitignore` includes
+`reference_repos/`, `examples/`, and `PLAN_DEV_OPENSTUFFIT.md`).
+
+For full local compatibility testing, clone the reference repositories:
+
+```sh
+mkdir -p reference_repos
+git clone https://github.com/ssokolow/stuffit-test-files.git reference_repos/stuffit-test-files
+git clone https://github.com/thecloudexpanse/sit.git reference_repos/sit
+git clone https://github.com/MacPaw/XADMaster.git reference_repos/XADMaster
+git clone https://github.com/MacPaw/universal-detector.git reference_repos/UniversalDetector
+git clone https://github.com/benletchford/stuffit-rs.git reference_repos/stuffit-rs
+```
+
+`make test-examples` requires a local `examples/list_archive.c`.
 
 ## Packaging
 
@@ -81,6 +104,7 @@ make install PREFIX=/usr/local
 This installs:
 
 - `/usr/local/bin/openstuffit`
+- `/usr/local/bin/openstuffit-fr-bridge`
 - `/usr/local/lib/libopenstuffit.a`
 - `/usr/local/lib/libopenstuffit.so`
 - `/usr/local/include/openstuffit/openstuffit.h`
@@ -106,8 +130,8 @@ Use one public header:
 
 The API and ABI policy is documented in `document/API_OPENSTUFFIT.md`.
 
-The `examples/list_archive.c` example uses only the public header and can be
-verified with:
+When available, the local `examples/list_archive.c` example uses only the
+public header and can be verified with:
 
 ```sh
 make test-examples
@@ -136,6 +160,52 @@ build/openstuffit list -L archive.sit
 build/openstuffit extract --overwrite --forks both -o out archive.sit
 build/openstuffit dump --json --entry testfile.txt archive.sit
 ```
+
+## File Roller Bridge
+
+`openstuffit-fr-bridge` is a stable CLI adapter intended for File Roller style
+backend integration:
+
+```sh
+build/openstuffit-fr-bridge identify --json archive.sit
+build/openstuffit-fr-bridge list --json archive.sit
+build/openstuffit-fr-bridge extract --output-dir out --overwrite archive.sit
+```
+
+Bridge tests:
+
+```sh
+make test-fr-bridge
+```
+
+## File Roller Local Track
+
+For local development on systems where `gtk4 >= 4.8.1` is not available, use
+the compatibility track in `reference_repos/file-roller-local` (tag `3.40.0`,
+gtk3-based).
+
+Local setup used in this project:
+
+```sh
+git clone reference_repos/file-roller reference_repos/file-roller-local
+git -C reference_repos/file-roller-local checkout 3.40.0
+cd reference_repos/file-roller-local
+meson setup _build --prefix=/usr -Dnautilus-actions=disabled -Dpackagekit=false
+ninja -C _build
+ninja -C _build test
+```
+
+Run File Roller with the bridge path explicitly set:
+
+```sh
+OPENSTUFFIT_FR_BRIDGE=/mnt/USERS/onion/DATA_ORIGN/Workspace/openstuffit/build/openstuffit-fr-bridge \
+reference_repos/file-roller-local/_build/src/file-roller
+```
+
+Patch artifacts:
+
+- `package/linux/patches/file-roller/0001-openstuffit-backend.patch` (44.6 track)
+- `package/linux/patches/file-roller-local/0001-openstuffit-backend-3.40.0.patch` (local-compatible track)
 
 ## Resource Forks
 
@@ -203,7 +273,6 @@ sources and are not relicensed as part of `openstuffit`.
 
 Project planning and format notes are maintained in:
 
-- `PLAN_DEV_OPENSTUFFIT.md`
 - `document/SPEC_SIT_CLASSIC.md`
 - `document/SPEC_SIT5.md`
 - `document/SPEC_SEA.md`

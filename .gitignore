@@ -1,5 +1,7 @@
 build/
-package/
+package/linux/*.tar
+package/linux/*.tar.gz
+package/linux/*.tgz
 
 *.a
 *.d

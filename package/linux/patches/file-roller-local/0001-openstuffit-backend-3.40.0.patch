@@ -1,0 +1,394 @@
+diff --git a/data/packages.match b/data/packages.match
+index 68ce591f..10877af5 100644
+--- a/data/packages.match
++++ b/data/packages.match
+@@ -13,6 +13,7 @@ lzip=
+ lzma=
+ lzop=
+ ncompress=
++openstuffit=
+ p7zip=
+ p7zip-full=
+ p7zip-rar=
+diff --git a/src/fr-command-openstuffit.c b/src/fr-command-openstuffit.c
+new file mode 100644
+index 00000000..b9284e7e
+--- /dev/null
++++ b/src/fr-command-openstuffit.c
+@@ -0,0 +1,307 @@
++/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
++
++/*
++ *  File-Roller
++ *
++ *  Copyright (C) 2026
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2 of the License, or
++ *  (at your option) any later version.
++ *
++ *  This program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#include <config.h>
++#include <time.h>
++#include <glib.h>
++#include <glib/gi18n.h>
++#include <json-glib/json-glib.h>
++#include "file-data.h"
++#include "file-utils.h"
++#include "gio-utils.h"
++#include "glib-utils.h"
++#include "fr-command.h"
++#include "fr-command-openstuffit.h"
++#include "fr-error.h"
++
++#define OPENSTUFFIT_BRIDGE_DEFAULT "/usr/bin/openstuffit-fr-bridge"
++#define OPENSTUFFIT_BRIDGE_ENV "OPENSTUFFIT_FR_BRIDGE"
++
++struct _FrCommandOpenstuffit
++{
++	FrCommand     parent_instance;
++	GInputStream *stream;
++};
++
++G_DEFINE_TYPE (FrCommandOpenstuffit, fr_command_openstuffit, fr_command_get_type ())
++
++static const char *
++openstuffit_bridge_program (void)
++{
++	const char *env_path;
++
++	env_path = g_getenv (OPENSTUFFIT_BRIDGE_ENV);
++	if ((env_path != NULL) && (env_path[0] != '\0'))
++		return env_path;
++	if (g_file_test (OPENSTUFFIT_BRIDGE_DEFAULT, G_FILE_TEST_IS_EXECUTABLE))
++		return OPENSTUFFIT_BRIDGE_DEFAULT;
++	return "openstuffit-fr-bridge";
++}
++
++static gboolean
++openstuffit_bridge_available (gboolean check_command)
++{
++	const char *env_path;
++
++	env_path = g_getenv (OPENSTUFFIT_BRIDGE_ENV);
++	if ((env_path != NULL) && (env_path[0] != '\0'))
++		return ! check_command || g_file_test (env_path, G_FILE_TEST_IS_EXECUTABLE);
++
++	if (g_file_test (OPENSTUFFIT_BRIDGE_DEFAULT, G_FILE_TEST_IS_EXECUTABLE))
++		return TRUE;
++
++	return _g_program_is_available ("openstuffit-fr-bridge", check_command);
++}
++
++static void
++process_line (char     *line,
++	      gpointer  data)
++{
++	FrCommandOpenstuffit *self = FR_COMMAND_OPENSTUFFIT (data);
++
++	g_memory_input_stream_add_data (G_MEMORY_INPUT_STREAM (self->stream), line, -1, NULL);
++}
++
++static void
++list_command_completed (gpointer data)
++{
++	FrCommandOpenstuffit *self = FR_COMMAND_OPENSTUFFIT (data);
++	JsonParser           *parser;
++	GError               *error = NULL;
++
++	parser = json_parser_new ();
++	if (json_parser_load_from_stream (parser, self->stream, NULL, &error)) {
++		JsonObject *root;
++		JsonArray  *entries;
++		guint       i;
++
++		root = json_node_get_object (json_parser_get_root (parser));
++		if (! json_object_has_member (root, "entries")) {
++			g_object_unref (parser);
++			return;
++		}
++
++		entries = json_object_get_array_member (root, "entries");
++		for (i = 0; i < json_array_get_length (entries); i++) {
++			JsonObject *entry;
++			FileData   *fdata;
++			const char *path;
++			gint64      mtime_unix = 0;
++
++			entry = json_array_get_object_element (entries, i);
++			path = json_object_get_string_member (entry, "path");
++			if ((path == NULL) || (path[0] == '\0'))
++				continue;
++
++			fdata = file_data_new ();
++			fdata->size = json_object_get_int_member (entry, "size");
++			if (json_object_has_member (entry, "mtime_unix"))
++				mtime_unix = json_object_get_int_member (entry, "mtime_unix");
++			fdata->modified = (time_t) mtime_unix;
++			fdata->encrypted = json_object_has_member (entry, "encrypted") ? json_object_get_boolean_member (entry, "encrypted") : FALSE;
++			fdata->dir = json_object_has_member (entry, "is_dir") ? json_object_get_boolean_member (entry, "is_dir") : FALSE;
++
++			if (path[0] == '/') {
++				fdata->full_path = g_strdup (path);
++				fdata->original_path = fdata->full_path;
++			}
++			else {
++				fdata->full_path = g_strconcat ("/", path, NULL);
++				fdata->original_path = fdata->full_path + 1;
++			}
++
++			fdata->link = NULL;
++			if (fdata->dir)
++				fdata->name = _g_path_get_dir_name (fdata->full_path);
++			else
++				fdata->name = g_strdup (_g_path_get_basename (fdata->full_path));
++			fdata->path = _g_path_remove_level (fdata->full_path);
++
++			fr_archive_add_file (FR_ARCHIVE (self), fdata);
++		}
++	}
++
++	g_clear_error (&error);
++	g_object_unref (parser);
++}
++
++static gboolean
++fr_command_openstuffit_list (FrCommand *comm)
++{
++	FrCommandOpenstuffit *self = FR_COMMAND_OPENSTUFFIT (comm);
++
++	_g_object_unref (self->stream);
++	self->stream = g_memory_input_stream_new ();
++
++	fr_process_set_out_line_func (comm->process, process_line, comm);
++	fr_process_begin_command (comm->process, openstuffit_bridge_program ());
++	fr_process_set_end_func (comm->process, list_command_completed, comm);
++	fr_process_add_arg (comm->process, "list");
++	fr_process_add_arg (comm->process, "--json");
++	fr_process_add_arg (comm->process, "--unicode-normalization");
++	fr_process_add_arg (comm->process, "nfc");
++	if ((FR_ARCHIVE (comm)->password != NULL) && (FR_ARCHIVE (comm)->password[0] != '\0')) {
++		fr_process_add_arg (comm->process, "--password");
++		fr_process_add_arg (comm->process, FR_ARCHIVE (comm)->password);
++	}
++	fr_process_add_arg (comm->process, comm->filename);
++	fr_process_end_command (comm->process);
++
++	return TRUE;
++}
++
++static void
++fr_command_openstuffit_extract (FrCommand  *comm,
++				const char *from_file,
++				GList      *file_list,
++				const char *dest_dir,
++				gboolean    overwrite,
++				gboolean    skip_older,
++				gboolean    junk_paths)
++{
++	(void) from_file;
++	(void) file_list;
++	(void) skip_older;
++	(void) junk_paths;
++
++	fr_process_use_standard_locale (comm->process, TRUE);
++	fr_process_begin_command (comm->process, openstuffit_bridge_program ());
++	fr_process_add_arg (comm->process, "extract");
++	if (dest_dir != NULL) {
++		fr_process_add_arg (comm->process, "--output-dir");
++		fr_process_add_arg (comm->process, dest_dir);
++	}
++	if (overwrite)
++		fr_process_add_arg (comm->process, "--overwrite");
++	else
++		fr_process_add_arg (comm->process, "--skip-existing");
++	fr_process_add_arg (comm->process, "--unicode-normalization");
++	fr_process_add_arg (comm->process, "nfc");
++	if ((FR_ARCHIVE (comm)->password != NULL) && (FR_ARCHIVE (comm)->password[0] != '\0')) {
++		fr_process_add_arg (comm->process, "--password");
++		fr_process_add_arg (comm->process, FR_ARCHIVE (comm)->password);
++	}
++	fr_process_add_arg (comm->process, comm->filename);
++	fr_process_end_command (comm->process);
++}
++
++static void
++fr_command_openstuffit_handle_error (FrCommand *comm,
++				     FrError   *error)
++{
++	(void) comm;
++
++	if (error->type == FR_ERROR_NONE)
++		return;
++
++	if (error->status == 4)
++		fr_error_take_gerror (error, g_error_new_literal (FR_ERROR, FR_ERROR_ASK_PASSWORD, ""));
++	else if (error->status == 2)
++		fr_error_take_gerror (error, g_error_new_literal (FR_ERROR, FR_ERROR_UNSUPPORTED_FORMAT, ""));
++}
++
++static const char *openstuffit_mime_type[] = { "application/x-stuffit", NULL };
++
++static const char **
++fr_command_openstuffit_get_mime_types (FrArchive *archive)
++{
++	(void) archive;
++	return openstuffit_mime_type;
++}
++
++static FrArchiveCap
++fr_command_openstuffit_get_capabilities (FrArchive  *archive,
++					 const char *mime_type,
++					 gboolean    check_command)
++{
++	FrArchiveCap capabilities;
++
++	(void) archive;
++	(void) mime_type;
++
++	capabilities = FR_ARCHIVE_CAN_DO_NOTHING;
++	if (openstuffit_bridge_available (check_command))
++		capabilities |= FR_ARCHIVE_CAN_READ;
++
++	return capabilities;
++}
++
++static const char *
++fr_command_openstuffit_get_packages (FrArchive  *archive,
++				     const char *mime_type)
++{
++	(void) archive;
++	(void) mime_type;
++	return PACKAGES ("openstuffit");
++}
++
++static void
++fr_command_openstuffit_finalize (GObject *object)
++{
++	FrCommandOpenstuffit *self;
++
++	g_return_if_fail (object != NULL);
++	g_return_if_fail (FR_IS_COMMAND_OPENSTUFFIT (object));
++
++	self = FR_COMMAND_OPENSTUFFIT (object);
++	_g_object_unref (self->stream);
++
++	if (G_OBJECT_CLASS (fr_command_openstuffit_parent_class)->finalize != NULL)
++		G_OBJECT_CLASS (fr_command_openstuffit_parent_class)->finalize (object);
++}
++
++static void
++fr_command_openstuffit_class_init (FrCommandOpenstuffitClass *klass)
++{
++	GObjectClass   *gobject_class;
++	FrArchiveClass *archive_class;
++	FrCommandClass *command_class;
++
++	fr_command_openstuffit_parent_class = g_type_class_peek_parent (klass);
++
++	gobject_class = G_OBJECT_CLASS (klass);
++	gobject_class->finalize = fr_command_openstuffit_finalize;
++
++	archive_class = FR_ARCHIVE_CLASS (klass);
++	archive_class->get_mime_types = fr_command_openstuffit_get_mime_types;
++	archive_class->get_capabilities = fr_command_openstuffit_get_capabilities;
++	archive_class->get_packages = fr_command_openstuffit_get_packages;
++
++	command_class = FR_COMMAND_CLASS (klass);
++	command_class->list = fr_command_openstuffit_list;
++	command_class->extract = fr_command_openstuffit_extract;
++	command_class->handle_error = fr_command_openstuffit_handle_error;
++}
++
++static void
++fr_command_openstuffit_init (FrCommandOpenstuffit *self)
++{
++	FrArchive *base = FR_ARCHIVE (self);
++
++	base->propExtractCanAvoidOverwrite = TRUE;
++	base->propExtractCanSkipOlder = FALSE;
++	base->propExtractCanJunkPaths = FALSE;
++	base->propPassword = TRUE;
++	base->propTest = FALSE;
++	base->propListFromFile = FALSE;
++
++	self->stream = NULL;
++}
+diff --git a/src/fr-command-openstuffit.h b/src/fr-command-openstuffit.h
+new file mode 100644
+index 00000000..895ce857
+--- /dev/null
++++ b/src/fr-command-openstuffit.h
+@@ -0,0 +1,29 @@
++/* -*- Mode: C; tab-width: 8; indent-tabs-mode: t; c-basic-offset: 8 -*- */
++
++/*
++ *  File-Roller
++ *
++ *  Copyright (C) 2026
++ *
++ *  This program is free software; you can redistribute it and/or modify
++ *  it under the terms of the GNU General Public License as published by
++ *  the Free Software Foundation; either version 2 of the License, or
++ *  (at your option) any later version.
++ *
++ *  This program is distributed in the hope that it will be useful,
++ *  but WITHOUT ANY WARRANTY; without even the implied warranty of
++ *  MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
++ *  GNU General Public License for more details.
++ *
++ *  You should have received a copy of the GNU General Public License
++ *  along with this program.  If not, see <http://www.gnu.org/licenses/>.
++ */
++
++#ifndef FR_COMMAND_OPENSTUFFIT_H
++#define FR_COMMAND_OPENSTUFFIT_H
++
++#include "fr-command.h"
++
++G_DECLARE_FINAL_TYPE (FrCommandOpenstuffit, fr_command_openstuffit, FR, COMMAND_OPENSTUFFIT, FrCommand)
++
++#endif /* FR_COMMAND_OPENSTUFFIT_H */
+diff --git a/src/fr-init.c b/src/fr-init.c
+index e7f54ab4..ec3ba17a 100644
+--- a/src/fr-init.c
++++ b/src/fr-init.c
+@@ -44,6 +44,7 @@
+ #include "fr-command-rpm.h"
+ #include "fr-command-tar.h"
+ #if HAVE_JSON_GLIB
++  #include "fr-command-openstuffit.h"
+   #include "fr-command-unarchiver.h"
+ #endif
+ #include "fr-command-unsquashfs.h"
+@@ -393,6 +394,9 @@ register_archives (void)
+ 	register_archive (fr_command_rar_get_type ());
+ 	register_archive (fr_command_rpm_get_type ());
+ 	register_archive (fr_command_unsquashfs_get_type ());
++#if HAVE_JSON_GLIB
++	register_archive (fr_command_openstuffit_get_type ());
++#endif
+ 	register_archive (fr_command_unstuff_get_type ());
+ 	register_archive (fr_command_zip_get_type ());
+ 	register_archive (fr_command_lrzip_get_type ());
+diff --git a/src/meson.build b/src/meson.build
+index 8083aacc..d6a5be5f 100644
+--- a/src/meson.build
++++ b/src/meson.build
+@@ -57,6 +57,7 @@ source_files = files(
+   'rar-utils.c'
+ )
+ if libjson_glib_dep.found()
++  source_files += [ 'fr-command-openstuffit.c' ]
+   source_files += [ 'fr-command-unarchiver.c' ]
+ endif
+ if use_libarchive
