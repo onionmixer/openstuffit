@@ -9,7 +9,7 @@ PKGCONFIGDIR ?= $(LIBDIR)/pkgconfig
 PROJECT_VERSION := 0.1.0
 ABI_VERSION := 0
 DIST_NAME := openstuffit-0.1.0-m1
-DIST_DIR := package/linux
+DIST_DIR := package/linux/plain
 DIST_TARBALL := $(DIST_DIR)/$(DIST_NAME).tar.gz
 UNAME_S := $(shell uname -s 2>/dev/null || echo Unknown)
 

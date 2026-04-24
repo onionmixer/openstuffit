@@ -108,7 +108,7 @@ run_status() {
     printf -- '- `make distcheck` performs clean, all, test, corrupt, fuzz, docs, and report generation in sequence.\n'
     printf -- '- Library checks validate the single public header, static/shared link paths, exported symbols, examples, install/uninstall, and pkg-config dynamic/static flags.\n'
     printf -- '- Corpus matrix tests representative `.sit`, `.sea`, `.hqx`, and unsupported `.sitx` files, plus `OPENSTUFFIT_CORPUS_DIR` when provided.\n'
-    printf -- '- `make distcheck-tarball` validates `package/linux/openstuffit-0.1.0-m1.tar.gz` by unpacking it under `/tmp` and running `make all && make test`.\n'
+    printf -- '- `make distcheck-tarball` validates `package/linux/plain/openstuffit-0.1.0-m1.tar.gz` by unpacking it under `/tmp` and running `make all && make test`.\n'
     printf -- '- Corrupt fixture checks include malformed SIT/HQX inputs, SIT5 method 14 data fork truncation/stream/length failures, and method 14 resource fork stream/CRC failures.\n'
     printf -- '- Fuzz smoke mutates classic SIT, BinHex HQX, and generated SIT5 method 14 data/resource fork raw deflate archives, including `extract --forks rsrc`.\n'
     printf -- '- CLI error matrix fixes invalid/missing argument cases at exit `5`.\n'

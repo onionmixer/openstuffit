@@ -76,10 +76,10 @@ Create the Linux source package with:
 make dist
 ```
 
-The tarball is written under `package/linux/`:
+The tarball is written under `package/linux/plain/`:
 
 ```text
-package/linux/openstuffit-0.1.0-m1.tar.gz
+package/linux/plain/openstuffit-0.1.0-m1.tar.gz
 ```
 
 Validate the packaged source by unpacking it under `/tmp` and running its
@@ -88,6 +88,11 @@ normal build and test suite with:
 ```sh
 make distcheck-tarball
 ```
+
+Linux packaging layout used by this repository:
+
+- `package/linux/plain`: source tarball outputs (`make dist`, `make distcheck-tarball`)
+- `package/linux/deb`: Debian-oriented artifacts (for example backend patch files)
 
 ## Library
 
@@ -240,8 +245,8 @@ Selection behavior:
 
 Patch artifacts:
 
-- `package/linux/patches/file-roller/0001-openstuffit-backend.patch` (44.6 track)
-- `package/linux/patches/file-roller-local/0001-openstuffit-backend-3.40.0.patch` (local-compatible track)
+- `package/linux/deb/patches/file-roller/0001-openstuffit-backend.patch` (44.6 track)
+- `package/linux/deb/patches/file-roller-local/0001-openstuffit-backend-3.40.0.patch` (local-compatible track)
 
 ## Resource Forks
 
