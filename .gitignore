@@ -1,7 +1,7 @@
 build/
-package/linux/*.tar
-package/linux/*.tar.gz
-package/linux/*.tgz
+package/linux/plain/*.tar
+package/linux/plain/*.tar.gz
+package/linux/plain/*.tgz
 
 *.a
 *.d
@@ -28,7 +28,7 @@ package/linux/*.tgz
 .codex
 .DS_Store
 
-PLAN_DEV_OPENSTUFFIT.md
+PLAN_*
 memo.txt
 examples/
 reference_repos/
