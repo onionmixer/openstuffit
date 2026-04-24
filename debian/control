@@ -1,0 +1,41 @@
+Source: openstuffit
+Section: utils
+Priority: optional
+Maintainer: openstuffit maintainers <openstuffit@example.invalid>
+Rules-Requires-Root: no
+Build-Depends:
+ debhelper-compat (= 13),
+ pkg-config,
+ zlib1g-dev
+Standards-Version: 4.6.2
+
+Package: openstuffit
+Architecture: any
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends}
+Description: CLI tool for inspecting and extracting StuffIt archives
+ openstuffit is a command line tool for identify/list/dump/extract/create
+ operations on classic StuffIt archives and wrappers.
+
+Package: libopenstuffit0
+Section: libs
+Architecture: any
+Multi-Arch: same
+Depends:
+ ${misc:Depends},
+ ${shlibs:Depends}
+Description: runtime shared library for openstuffit
+ libopenstuffit0 provides the runtime shared library used by openstuffit and
+ applications linking against the openstuffit C API.
+
+Package: libopenstuffit-dev
+Section: libdevel
+Architecture: any
+Multi-Arch: same
+Depends:
+ ${misc:Depends},
+ libopenstuffit0 (= ${binary:Version})
+Description: development files for openstuffit
+ libopenstuffit-dev provides headers, pkg-config metadata, and development
+ linker files for the openstuffit C API.

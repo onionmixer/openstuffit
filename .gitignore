@@ -2,6 +2,19 @@ build/
 package/linux/plain/*.tar
 package/linux/plain/*.tar.gz
 package/linux/plain/*.tgz
+package/linux/deb/*.deb
+package/linux/deb/*.ddeb
+package/linux/deb/*.build
+package/linux/deb/*.buildinfo
+package/linux/deb/*.changes
+debian/.debhelper/
+debian/debhelper-build-stamp
+debian/files
+debian/*.substvars
+debian/tmp/
+debian/openstuffit/
+debian/libopenstuffit0/
+debian/libopenstuffit-dev/
 
 *.a
 *.d

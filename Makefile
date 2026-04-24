@@ -11,6 +11,7 @@ ABI_VERSION := 0
 DIST_NAME := openstuffit-0.1.0-m1
 DIST_DIR := package/linux/plain
 DIST_TARBALL := $(DIST_DIR)/$(DIST_NAME).tar.gz
+DEB_DIR := package/linux/deb
 UNAME_S := $(shell uname -s 2>/dev/null || echo Unknown)
 
 BUILD_DIR := build
@@ -70,7 +71,7 @@ EXAMPLE_OBJS := $(BUILD_DIR)/examples/list_archive.o
 PUBLIC_HEADERS := $(INCLUDE_DIR)/openstuffit/openstuffit.h
 DEPFILES := $(LIB_OBJS:.o=.d) $(LIB_PIC_OBJS:.o=.d) $(CLI_OBJS:.o=.d) $(BRIDGE_OBJS:.o=.d) $(TEST_OBJS:.o=.d) $(TEST_LIB_OBJS:.o=.d) $(EXAMPLE_OBJS:.o=.d)
 
-.PHONY: all lib lib-static lib-shared examples clean test test-unit test-library test-library-static test-library-shared test-examples test-symbols test-install test-pkg-config test-corpus-matrix test-cli test-cli-errors test-password test-fixtures test-list-matrix test-extract-matrix test-fr-bridge test-generated-method-fixtures test-generator-selftest test-json-schema test-json-golden test-error-golden test-path-safety test-large-fixtures test-unicode-filenames test-native-forks test-identify-all test-corrupt test-fuzz-smoke test-docs test-method-scan test-valgrind test-clang test-werror test-cppcheck test-scan-build test-shellcheck build-xadmaster test-xad-compare test-report test-sanitize distcheck distcheck-tarball install uninstall dist format
+.PHONY: all lib lib-static lib-shared examples clean test test-unit test-library test-library-static test-library-shared test-examples test-symbols test-install test-pkg-config test-corpus-matrix test-cli test-cli-errors test-password test-fixtures test-list-matrix test-extract-matrix test-fr-bridge test-generated-method-fixtures test-generator-selftest test-json-schema test-json-golden test-error-golden test-path-safety test-large-fixtures test-unicode-filenames test-native-forks test-identify-all test-corrupt test-fuzz-smoke test-docs test-method-scan test-valgrind test-clang test-werror test-cppcheck test-scan-build test-shellcheck build-xadmaster test-xad-compare test-report test-sanitize distcheck distcheck-tarball deb install uninstall dist format
 
 all: $(BUILD_DIR)/openstuffit $(BUILD_DIR)/openstuffit-fr-bridge lib $(PKG_CONFIG_FILE)
 
@@ -395,6 +396,23 @@ distcheck:
 
 distcheck-tarball: dist
 	bash tools/run_distcheck_tarball.sh "$(DIST_TARBALL)"
+
+deb:
+	rm -rf build/deb-work
+	mkdir -p build/deb-work/openstuffit "$(DEB_DIR)"
+	tar --exclude=.git \
+	    --exclude=build/deb-work \
+	    --exclude=package/linux/deb/*.deb \
+	    --exclude=package/linux/deb/*.ddeb \
+	    --exclude=package/linux/deb/*.changes \
+	    --exclude=package/linux/deb/*.build \
+	    --exclude=package/linux/deb/*.buildinfo \
+	    -cf - . | (cd build/deb-work/openstuffit && tar -xf -)
+	cd build/deb-work/openstuffit && dpkg-buildpackage -us -uc -b
+	@set -e; \
+	find build/deb-work -maxdepth 1 -type f \( \
+		-name '*.deb' -o -name '*.ddeb' -o -name '*.changes' -o -name '*.build' -o -name '*.buildinfo' \
+	\) -exec cp -f {} "$(DEB_DIR)/" \;
 
 install: $(BUILD_DIR)/openstuffit $(BUILD_DIR)/openstuffit-fr-bridge $(LIB_STATIC) $(LIB_SHARED)
 	install -d "$(DESTDIR)$(BINDIR)" "$(DESTDIR)$(LIBDIR)" "$(DESTDIR)$(INCLUDEDIR)/openstuffit" "$(DESTDIR)$(PKGCONFIGDIR)"

@@ -92,7 +92,23 @@ make distcheck-tarball
 Linux packaging layout used by this repository:
 
 - `package/linux/plain`: source tarball outputs (`make dist`, `make distcheck-tarball`)
-- `package/linux/deb`: Debian-oriented artifacts (for example backend patch files)
+- `package/linux/deb`: Debian package outputs (`make deb`)
+- `package/linux/plain/patches`: optional integration patches (not part of Debian package payload)
+
+Build Debian packages:
+
+```sh
+make deb
+```
+
+Generated binary package set:
+
+- `openstuffit`: CLI binary
+- `libopenstuffit0`: runtime shared library
+- `libopenstuffit-dev`: headers/pkg-config/development linker files
+
+Debian packaging intentionally excludes File Roller integration artifacts and
+`openstuffit-fr-bridge`.
 
 ## Library
 
@@ -245,8 +261,8 @@ Selection behavior:
 
 Patch artifacts:
 
-- `package/linux/deb/patches/file-roller/0001-openstuffit-backend.patch` (44.6 track)
-- `package/linux/deb/patches/file-roller-local/0001-openstuffit-backend-3.40.0.patch` (local-compatible track)
+- `package/linux/plain/patches/file-roller/0001-openstuffit-backend.patch` (44.6 track)
+- `package/linux/plain/patches/file-roller-local/0001-openstuffit-backend-3.40.0.patch` (local-compatible track)
 
 ## Resource Forks
 

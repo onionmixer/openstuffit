@@ -7,8 +7,8 @@ Date: 2026-04-23
 - Implemented `openstuffit-fr-bridge` in `openstuffit`
 - Added `fr-command-openstuffit` backend patch against `reference_repos/file-roller`
 - Added `fr-command-openstuffit` backend patch against `reference_repos/file-roller-local` (`3.40.0`)
-- Generated patch artifact at `package/linux/deb/patches/file-roller/0001-openstuffit-backend.patch`
-- Generated patch artifact at `package/linux/deb/patches/file-roller-local/0001-openstuffit-backend-3.40.0.patch`
+- Generated patch artifact at `package/linux/plain/patches/file-roller/0001-openstuffit-backend.patch`
+- Generated patch artifact at `package/linux/plain/patches/file-roller-local/0001-openstuffit-backend-3.40.0.patch`
 
 ## openstuffit Validation
 

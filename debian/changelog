@@ -1,0 +1,6 @@
+openstuffit (0.1.0~m1-1) unstable; urgency=medium
+
+  * Initial Debian packaging for CLI and library deliverables.
+  * Exclude File Roller integration artifacts from Debian package payload.
+
+ -- openstuffit maintainers <openstuffit@example.invalid>  Fri, 24 Apr 2026 16:30:00 +0900

@@ -1,0 +1,4 @@
+usr/include/openstuffit/openstuffit.h
+usr/lib/libopenstuffit.a
+usr/lib/libopenstuffit.so
+usr/lib/pkgconfig/openstuffit.pc
