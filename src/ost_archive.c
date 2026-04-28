@@ -453,6 +453,7 @@ static ost_status parse_sit5(const uint8_t *data,
             cursor += 2;
             if (dlen == 0xffffffffu) {
                 remaining_entries++;
+                off += headersize;
                 continue;
             }
         } else {

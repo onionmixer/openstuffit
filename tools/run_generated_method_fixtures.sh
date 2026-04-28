@@ -114,6 +114,18 @@ grep -q '"method_name":"deflate"' "$tmp/method14_nested.json"
 "$bin" extract --overwrite -o "$tmp/out14_nested" "$tmp/method14_nested.sit" >/dev/null
 cmp -s "$tmp/out14_nested/folder/method14_nested.txt" "$tmp/method14_nested.txt"
 
+python3 tools/gen_sit5_method14_fixture.py dir_sentinel "$tmp/dir_sentinel.sit"
+
+timeout 10 "$bin" list --json "$tmp/dir_sentinel.sit" >"$tmp/dir_sentinel.json"
+grep -q '"format":"sit5"' "$tmp/dir_sentinel.json"
+grep -q '"path":"dir","kind":"directory"' "$tmp/dir_sentinel.json"
+grep -q '"path":"dir/a.txt","kind":"file"' "$tmp/dir_sentinel.json"
+grep -q '"path":"dir/b.txt","kind":"file"' "$tmp/dir_sentinel.json"
+
+timeout 10 "$bin" extract --overwrite -o "$tmp/out_dir_sentinel" "$tmp/dir_sentinel.sit" >/dev/null
+printf 'alpha\n' | cmp -s - "$tmp/out_dir_sentinel/dir/a.txt"
+printf 'beta\n' | cmp -s - "$tmp/out_dir_sentinel/dir/b.txt"
+
 python3 tools/gen_sit5_method14_fixture.py rsrc "$tmp/method14_rsrc.sit" --plain-out "$tmp/method14_rsrc_data.txt" --rsrc-out "$tmp/method14_rsrc.bin"
 
 "$bin" list --json "$tmp/method14_rsrc.sit" >"$tmp/method14_rsrc.json"
@@ -185,4 +197,4 @@ assert data[58:60] == b"\0\0"
 assert data[82:] == rsrc
 PY
 
-echo "generated method fixtures ok: method2=lzw method3=huffman method14=deflate method14_nested=deflate method14_rsrc=deflate"
+echo "generated method fixtures ok: method2=lzw method3=huffman method14=deflate method14_nested=deflate method14_dir_sentinel=sit5 method14_rsrc=deflate"

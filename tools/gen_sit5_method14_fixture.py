@@ -132,6 +132,50 @@ def build_nested():
     return data, {"plain": plain}
 
 
+def build_dir_sentinel():
+    folder_name = b"dir"
+    file1_name = b"a.txt"
+    file2_name = b"b.txt"
+    file1_plain = b"alpha\n"
+    file2_plain = b"beta\n"
+    file1_compressed = raw_deflate(file1_plain)
+    file2_compressed = raw_deflate(file2_plain)
+    data, total_pos = archive_header()
+
+    folder_offset = len(data)
+    folder = entry_prefix(0x40, 0, folder_name, 0, 0, 0)
+    folder += u16(2)
+    folder += folder_name
+    data += finalize_entry(folder)
+    append_finder(data, b"\0" * 4, b"\0" * 4)
+
+    sentinel_offset = len(data)
+    sentinel = entry_prefix(0x40, folder_offset, b"", 0xFFFFFFFF, 0, 0)
+    sentinel += u16(0)
+    data += finalize_entry(sentinel)
+
+    file1 = entry_prefix(0, folder_offset, file1_name, len(file1_plain), len(file1_compressed), crc16_ibm(file1_plain))
+    file1 += b"\x0e\x00"
+    file1 += file1_name
+    data += finalize_entry(file1)
+    append_finder(data)
+    data += file1_compressed
+
+    file2 = entry_prefix(0, folder_offset, file2_name, len(file2_plain), len(file2_compressed), crc16_ibm(file2_plain))
+    file2 += b"\x0e\x00"
+    file2 += file2_name
+    data += finalize_entry(file2)
+    append_finder(data)
+    data += file2_compressed
+
+    data[total_pos:total_pos + 4] = u32(len(data))
+    return data, {
+        "file1_plain": file1_plain,
+        "file2_plain": file2_plain,
+        "sentinel_offset": sentinel_offset,
+    }
+
+
 def build_rsrc():
     name = b"method14_rsrc.txt"
     plain = b"Data fork stored without compression.\n"
@@ -203,6 +247,13 @@ def selftest():
     assert b"folder" in nested
     assert b"method14_nested.txt" in nested
 
+    dir_sentinel, ds_meta = build_dir_sentinel()
+    assert dir_sentinel.count(b"\xa5\xa5\xa5\xa5") == 4
+    sentinel_off = ds_meta["sentinel_offset"]
+    assert struct.unpack(">I", dir_sentinel[sentinel_off + 34:sentinel_off + 38])[0] == 0xFFFFFFFF
+    assert struct.unpack(">H", dir_sentinel[sentinel_off + 30:sentinel_off + 32])[0] == 0
+    assert b"a.txt" in dir_sentinel and b"b.txt" in dir_sentinel
+
     rsrc, rsrc_meta = build_rsrc()
     assert rsrc.count(b"\xa5\xa5\xa5\xa5") == 1
     assert rsrc[rsrc_meta["rcrc_pos"]:rsrc_meta["rcrc_pos"] + 2] == u16(crc16_ibm(rsrc_meta["resource"]))
@@ -214,7 +265,7 @@ def selftest():
 
 def main():
     parser = argparse.ArgumentParser()
-    parser.add_argument("kind", choices=["flat", "nested", "rsrc", "selftest"])
+    parser.add_argument("kind", choices=["flat", "nested", "dir_sentinel", "rsrc", "selftest"])
     parser.add_argument("archive", nargs="?")
     parser.add_argument("--plain-out")
     parser.add_argument("--rsrc-out")
@@ -233,6 +284,8 @@ def main():
         data, meta = build_flat()
     elif args.kind == "nested":
         data, meta = build_nested()
+    elif args.kind == "dir_sentinel":
+        data, meta = build_dir_sentinel()
     else:
         data, meta = build_rsrc()
 
