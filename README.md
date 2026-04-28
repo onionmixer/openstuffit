@@ -252,6 +252,26 @@ reference_repos/file-roller-local/_build/src/file-roller \
 reference_repos/stuffit-test-files/build/testfile.stuffit45_dlx.mac9.sit
 ```
 
+The backend resolves the bridge program in this order: the `OPENSTUFFIT_FR_BRIDGE`
+environment variable, `/usr/bin/openstuffit-fr-bridge`, then a `PATH` lookup for
+`openstuffit-fr-bridge`. Putting the build directory on `PATH` is therefore an
+equivalent alternative without `make install`:
+
+```sh
+PATH=/mnt/USERS/onion/DATA_ORIGN/Workspace/openstuffit/build:$PATH \
+reference_repos/file-roller-local/_build/src/file-roller
+```
+
+Troubleshooting: if File Roller fails to open a `.sit` file with no obvious
+error in the GUI, the bridge is most likely unreachable. Confirm the archive
+itself first with `build/openstuffit identify --json <archive>` and
+`build/openstuffit-fr-bridge list --json <archive>`. A valid result there with
+File Roller still failing means the running File Roller process did not see
+`openstuffit-fr-bridge` via env var, default path, or `PATH`. A
+`Json-CRITICAL: json_node_get_object: assertion 'JSON_NODE_IS_VALID (node)' failed`
+message in the File Roller stderr indicates the bridge produced no JSON
+(missing or crashing binary) rather than a malformed archive.
+
 Selection behavior:
 
 - extracting all entries: no `--entry` arguments
